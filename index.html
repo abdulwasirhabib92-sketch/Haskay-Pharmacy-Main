@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Haskay Pharmacy - UI Sandbox</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .animate-slide-in { animation: slideIn 0.2s ease-out; }
+        @keyframes slideIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-slate-50 to-blue-50 min-h-screen">
+
+    <div id="dev-banner" class="bg-blue-600 text-white text-xs py-2 px-4 text-center font-semibold tracking-wide shadow-sm">
+        🛠️ PHASE 1 UI MODE: RUNNING STANDALONE FRONTEND (LOCAL SANDBOX)
+    </div>
+
+    <div id="app" class="min-h-screen flex flex-col"></div>
+
+    <div id="toast-container" class="fixed bottom-4 right-4 z-50 flex flex-col gap-2"></div>
+
+    <script>
+    const App = {
+        state: {
+            user: null,
+            route: '/login',
+            patients: [
+                { id: '1', name: 'Kwame Mensah', dob: '1988-05-14', phone: '0244123456', notes: 'Requires monthly blood pressure tracking.' },
+                { id: '2', name: 'Amma Osei', dob: '1995-11-22', phone: '0555987654', notes: 'No known drug allergies.' }
+            ],
+            expenses: [
+                { id: '1', category: 'Water', amount: 150.00, description: 'Office drinking water delivery.', date: '2026-06-08' },
+                { id: '2', category: 'Overhead', amount: 45.00, description: 'T-roll and cleaning detergent supplies.', date: '2026-06-09' }
+            ],
+            attendance: [
+                { id: '1', staffName: 'Admin User', checkIn: '08:02 AM', checkOut: '05:00 PM', date: '2026-06-09', status: 'On Time' }
+            ]
+        },
+
+        init() {
+            window.addEventListener('hashchange', () => this.handleRouting());
+            this.handleRouting();
+        },
+
+        handleRouting() {
+            this.state.route = window.location.hash.slice(1) || '/login';
+            
+            // Route protection simulation
+            if (!this.state.user && this.state.route !== '/login') {
+                window.location.hash = '/login';
+                return;
+            }
+            if (this.state.user && this.state.route === '/login') {
+                window.location.hash = '/dashboard';
+                return;
+            }
+            this.render();
+        },
+
+        render() {
+            const appDiv = document.getElementById('app');
+            
+            if (this.state.route === '/login') {
+                appDiv.innerHTML = this.viewLogin();
+                this.bindLoginEvents();
+                return;
+            }
+
+            appDiv.innerHTML = `
+                <div class="flex min-h-screen">
+                    ${this.componentSidebar()}
+                    <main class="flex-1 overflow-x-hidden bg-slate-50/50 p-6 md:p-10">
+                        <div class="max-w-6xl mx-auto animate-slide-in">
+                            ${this.getRouteView()}
+                        </div>
+                    </main>
+                </div>
+            `;
+            this.bindViewEvents();
+        },
+
+        getRouteView() {
+            switch(this.state.route) {
+                case '/dashboard': return this.viewDashboard();
+                case '/patients': return this.viewPatients();
+                case '/expenses': return this.viewExpenses();
+                case '/attendance': return this.viewAttendance();
+                default: return this.viewDashboard();
+            }
+        },
+
+        // --- COMPONENTS & VIEWS ---
+
+        viewLogin() {
+            return `
+                <div class="min-h-[85vh] flex items-center justify-center px-4">
+                    <div class="bg-white p-8 rounded-2xl shadow-xl border border-slate-100 max-w-md w-full">
+                        <div class="text-center mb-6">
+                            <h2 class="text-2xl font-bold text-slate-800">Staff Secure Portal</h2>
+                            <p class="text-sm text-slate-500 mt-1">Haskay Pharmacy Management System</p>
+                        </div>
+                        <div class="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-800 mb-4 leading-relaxed">
+                            💡 <strong>Dev Credential Key:</strong><br>
+                            Email: <code class="font-mono bg-white px-1 rounded">admin@haskay.com</code><br>
+                            Password: <code class="font-mono bg-white px-1 rounded">password123</code>
+                        </div>
+                        <form id="login-form" class="space-y-4">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Email Address</label>
+                                <input type="email" id="login-email" required class="w-full border border-slate-200 p-3 rounded-xl bg-slate-50 focus:bg-white focus:border-blue-500 transition-all text-sm" placeholder="Enter your email">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Password</label>
+                                <input type="password" id="login-password" required class="w-full border border-slate-200 p-3 rounded-xl bg-slate-50 focus:bg-white focus:border-blue-500 transition-all text-sm" placeholder="••••••••">
+                            </div>
+                            <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white p-3 font-semibold rounded-xl transition-all shadow-md shadow-blue-200 text-sm mt-2">
+                                Login to Workspace
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            `;
+        },
+
+        componentSidebar() {
+            const menuItems = [
+                { hash: '/dashboard', label: 'Dashboard Grid', icon: 'M4 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2v-4zM14 16a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2v-4z' },
+                { hash: '/patients', label: 'Patient Registry', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01' },
+                { hash: '/expenses', label: 'Overhead Log', icon: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
+                { hash: '/attendance', label: 'Staff Clocking', icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z' }
+            ];
+
+            return `
+                <aside class="w-64 bg-white border-r border-slate-200 flex flex-col shadow-sm">
+                    <div class="p-6 border-b border-slate-200">
+                        <h1 class="text-xl font-bold bg-gradient-to-r from-blue-600 to-emerald-600 bg-clip-text text-transparent">Haskay System</h1>
+                        <div class="flex items-center gap-2 mt-2">
+                            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                            <span class="text-xs font-medium text-slate-500">${this.state.user.email}</span>
+                        </div>
+                    </div>
+                    <nav class="flex-1 p-4 space-y-1">
+                        ${menuItems.map(item => `
+                            <a href="#${item.hash}" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${this.state.route === item.hash ? 'bg-blue-50 text-blue-700 font-semibold' : 'text-slate-600 hover:bg-slate-50'}">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${item.icon}"></path></svg>
+                                <span class="text-sm">${item.label}</span>
+                            </a>
+                        `).join('')}
+                    </nav>
+                    <div class="p-4 border-t border-slate-200">
+                        <button id="logout-btn" class="w-full flex items-center justify-center gap-2 text-sm font-medium text-rose-600 hover:bg-rose-50 p-2.5 rounded-xl transition-all">
+                            Sign Out Workspace
+                        </button>
+                    </div>
+                </aside>
+            `;
+        },
+
+        viewDashboard() {
+            return `
+                <div class="space-y-6">
+                    <div>
+                        <h2 class="text-2xl font-bold text-slate-800">Operational Summary</h2>
+                        <p class="text-slate-500 text-sm">Standalone mockup analytics overview.</p>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                            <div class="text-slate-400 text-xs font-bold uppercase tracking-wider mb-1">Registered Profiles</div>
+                            <div class="text-3xl font-bold text-slate-800">${this.state.patients.length}</div>
+                        </div>
+                        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                            <div class="text-slate-400 text-xs font-bold uppercase tracking-wider mb-1">Log Month Expense</div>
+                            <div class="text-3xl font-bold text-slate-800">GHS ${this.state.expenses.reduce((acc, curr) => acc + curr.amount, 0).toFixed(2)}</div>
+                        </div>
+                        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                            <div class="text-slate-400 text-xs font-bold uppercase tracking-wider mb-1">Clocked Shifts Today</div>
+                            <div class="text-3xl font-bold text-emerald-600">${this.state.attendance.length} Active</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        },
+
+        viewPatients() {
+            return `
+                <div class="space-y-6">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <h2 class="text-2xl font-bold text-slate-800">Patient Registry</h2>
+                            <p class="text-slate-500 text-sm">Review active patient files stored inside memory array context.</p>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-600 uppercase">
+                                    <th class="p-4">Full Legal Name</th>
+                                    <th class="p-4">Date of Birth</th>
+                                    <th class="p-4">Contact Handle</th>
+                                    <th class="p-4">Clinical File Notes</th>
+                                </tr>
+                            </thead>
+                            <tbody class="text-sm text-slate-700 divide-y divide-slate-100">
+                                ${this.state.patients.map(p => `
+                                    <tr>
+                                        <td class="p-4 font-semibold text-slate-900">${p.name}</td>
+                                        <td class="p-4 text-slate-500">${p.dob}</td>
+                                        <td class="p-4 font-mono">${p.phone}</td>
+                                        <td class="p-4 text-slate-600 italic">${p.notes}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+        },
+
+        viewExpenses() {
+            return `
+                <div class="space-y-6">
+                    <div>
+                        <h2 class="text-2xl font-bold text-slate-800">Pharmacy Overhead Tracker</h2>
+                        <p class="text-slate-500 text-sm">Water, operational bills, and resource tracking metrics log layout.</p>
+                    </div>
+                    <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-600 uppercase">
+                                    <th class="p-4">Expense Node Category</th>
+                                    <th class="p-4">Date Logged</th>
+                                    <th class="p-4">Description Text</th>
+                                    <th class="p-4">Amount Issued</th>
+                                </tr>
+                            </thead>
+                            <tbody class="text-sm text-slate-700 divide-y divide-slate-100">
+                                ${this.state.expenses.map(e => `
+                                    <tr>
+                                        <td class="p-4 font-medium"><span class="px-2 py-1 bg-slate-100 text-slate-700 rounded-md text-xs font-bold uppercase">${e.category}</span></td>
+                                        <td class="p-4 text-slate-500">${e.date}</td>
+                                        <td class="p-4 text-slate-600">${e.description}</td>
+                                        <td class="p-4 font-bold text-slate-900">GHS ${e.amount.toFixed(2)}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+        },
+
+        viewAttendance() {
+            return `
+                <div class="space-y-6">
+                    <div>
+                        <h2 class="text-2xl font-bold text-slate-800">Shift Timestamps</h2>
+                        <p class="text-slate-500 text-sm">Standalone roster shift tracking verification preview layout.</p>
+                    </div>
+                    <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-600 uppercase">
+                                    <th class="p-4">Staff Member</th>
+                                    <th class="p-4">Logging Date</th>
+                                    <th class="p-4">Punch In</th>
+                                    <th class="p-4">Punch Out</th>
+                                    <th class="p-4">Exception Note</th>
+                                </tr>
+                            </thead>
+                            <tbody class="text-sm text-slate-700 divide-y divide-slate-100">
+                                ${this.state.attendance.map(a => `
+                                    <tr>
+                                        <td class="p-4 font-semibold text-slate-900">${a.staffName}</td>
+                                        <td class="p-4 text-slate-500">${a.date}</td>
+                                        <td class="p-4 font-mono text-emerald-600 font-medium">${a.checkIn}</td>
+                                        <td class="p-4 font-mono text-slate-500">${a.checkOut}</td>
+                                        <td class="p-4"><span class="px-2 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full text-xs font-medium">${a.status}</span></td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+        },
+
+        // --- HANDLERS & EVENTS ---
+
+        bindLoginEvents() {
+            document.getElementById('login-form')?.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const email = document.getElementById('login-email').value.trim();
+                const password = document.getElementById('login-password').value;
+
+                if (email === 'admin@haskay.com' && password === 'password123') {
+                    this.state.user = { email: 'admin@haskay.com', role: 'admin' };
+                    this.showToast('Authentication check passed!', 'success');
+                    window.location.hash = '/dashboard';
+                } else {
+                    alert('Invalid credentials');
+                }
+            });
+        },
+
+        bindViewEvents() {
+            document.getElementById('logout-btn')?.addEventListener('click', () => {
+                this.state.user = null;
+                this.showToast('Logged out securely.', 'info');
+                window.location.hash = '/login';
+            });
+        },
+
+        bindViewEvents() {
+            document.getElementById('logout-btn')?.addEventListener('click', () => {
+                this.state.user = null;
+                this.showToast('Logged out safely.', 'success');
+                window.location.hash = '/login';
+            });
+        },
+
+        showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            if (!container) return;
+            const toast = document.createElement('div');
+            toast.className = `p-4 rounded-xl shadow-xl text-white font-medium text-sm animate-slide-in ${type === 'success' ? 'bg-emerald-600 shadow-emerald-100' : 'bg-blue-600 shadow-blue-100'}`;
+            toast.textContent = message;
+            container.appendChild(toast);
+            setTimeout(() => toast.remove(), 3500);
+        }
+    };
+
+    window.addEventListener('DOMContentLoaded', () => App.init());
+    </script>
+</body>
+</html>
