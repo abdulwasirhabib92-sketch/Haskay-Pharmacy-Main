@@ -2,337 +2,329 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Haskay Pharmacy - UI Sandbox</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <meta name="description" content="Haskay Pharmacy & Labs - Modern patient management system for pharmacy operations. Manage patients, documents, expenses, and staff attendance.">
+    <meta name="keywords" content="pharmacy management, patient records, Haskay, healthcare, Ghana pharmacy">
+    <meta name="author" content="Haskay and Labs">
+    <meta name="theme-color" content="#0d9488">
+    <meta property="og:title" content="Haskay Pharmacy & Labs">
+    <meta property="og:description" content="Modern pharmacy management system">
+    <meta property="og:type" content="website">
+    <title>Haskay Pharmacy & Labs — Management System</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: { sans: ['Plus Jakarta Sans', 'system-ui', 'sans-serif'] },
+            colors: {
+              brand: {
+                50:'#f0fdfa',100:'#ccfbf1',200:'#99f6e4',300:'#5eead4',400:'#2dd4bf',
+                500:'#14b8a6',600:'#0d9488',700:'#0f766e',800:'#115e59',900:'#134e4a'
+              }
+            }
+          }
+        }
+      }
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        body { font-family: 'Inter', sans-serif; }
-        .animate-slide-in { animation: slideIn 0.2s ease-out; }
-        @keyframes slideIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+      *{ -webkit-tap-highlight-color: transparent; }
+      body{ font-family:'Plus Jakarta Sans',sans-serif; }
+      .slide-up{ animation:slideUp .3s ease-out; }
+      @keyframes slideUp{ from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+      .fade-in{ animation:fadeIn .2s ease-out; }
+      @keyframes fadeIn{ from{opacity:0} to{opacity:1} }
+      .scale-in{ animation:scaleIn .15s ease-out; }
+      @keyframes scaleIn{ from{opacity:0;transform:scale(.95)} to{opacity:1;transform:scale(1)} }
+      .toast-in{ animation:toastIn .25s cubic-bezier(.16,1,.3,1); }
+      @keyframes toastIn{ from{opacity:0;transform:translateY(20px) scale(.9)} to{opacity:1;transform:translateY(0) scale(1)} }
+      ::-webkit-scrollbar{ width:6px; height:6px; }
+      ::-webkit-scrollbar-track{ background:transparent; }
+      ::-webkit-scrollbar-thumb{ background:#cbd5e1; border-radius:3px; }
+      ::-webkit-scrollbar-thumb:hover{ background:#94a3b8; }
+      .sidebar-link.active{ background:linear-gradient(135deg,#0d9488,#0f766e); color:#fff; box-shadow:0 4px 12px rgba(13,148,136,.25); }
+      .card-hover{ transition:all .2s ease; }
+      .card-hover:hover{ transform:translateY(-2px); box-shadow:0 8px 24px rgba(0,0,0,.06); }
+      .pulse-dot{ animation:pulseDot 2s infinite; }
+      @keyframes pulseDot{ 0%,100%{opacity:1} 50%{opacity:.4} }
+      .mobile-nav{ -webkit-overflow-scrolling:touch; scrollbar-width:none; }
+      .mobile-nav::-webkit-scrollbar{ display:none; }
     </style>
 </head>
-<body class="bg-gradient-to-br from-slate-50 to-blue-50 min-h-screen">
-
-    <div id="dev-banner" class="bg-blue-600 text-white text-xs py-2 px-4 text-center font-semibold tracking-wide shadow-sm">
-        🛠️ PHASE 1 UI MODE: RUNNING STANDALONE FRONTEND (LOCAL SANDBOX)
-    </div>
-
-    <div id="app" class="min-h-screen flex flex-col"></div>
-
-    <div id="toast-container" class="fixed bottom-4 right-4 z-50 flex flex-col gap-2"></div>
-
-    <script>
-    const App = {
-        state: {
-            user: null,
-            route: '/login',
-            patients: [
-                { id: '1', name: 'Kwame Mensah', dob: '1988-05-14', phone: '0244123456', notes: 'Requires monthly blood pressure tracking.' },
-                { id: '2', name: 'Amma Osei', dob: '1995-11-22', phone: '0555987654', notes: 'No known drug allergies.' }
-            ],
-            expenses: [
-                { id: '1', category: 'Water', amount: 150.00, description: 'Office drinking water delivery.', date: '2026-06-08' },
-                { id: '2', category: 'Overhead', amount: 45.00, description: 'T-roll and cleaning detergent supplies.', date: '2026-06-09' }
-            ],
-            attendance: [
-                { id: '1', staffName: 'Admin User', checkIn: '08:02 AM', checkOut: '05:00 PM', date: '2026-06-09', status: 'On Time' }
-            ]
-        },
-
-        init() {
-            window.addEventListener('hashchange', () => this.handleRouting());
-            this.handleRouting();
-        },
-
-        handleRouting() {
-            this.state.route = window.location.hash.slice(1) || '/login';
-            
-            // Route protection simulation
-            if (!this.state.user && this.state.route !== '/login') {
-                window.location.hash = '/login';
-                return;
-            }
-            if (this.state.user && this.state.route === '/login') {
-                window.location.hash = '/dashboard';
-                return;
-            }
-            this.render();
-        },
-
-        render() {
-            const appDiv = document.getElementById('app');
-            
-            if (this.state.route === '/login') {
-                appDiv.innerHTML = this.viewLogin();
-                this.bindLoginEvents();
-                return;
-            }
-
-            appDiv.innerHTML = `
-                <div class="flex min-h-screen">
-                    ${this.componentSidebar()}
-                    <main class="flex-1 overflow-x-hidden bg-slate-50/50 p-6 md:p-10">
-                        <div class="max-w-6xl mx-auto animate-slide-in">
-                            ${this.getRouteView()}
-                        </div>
-                    </main>
-                </div>
-            `;
-            this.bindViewEvents();
-        },
-
-        getRouteView() {
-            switch(this.state.route) {
-                case '/dashboard': return this.viewDashboard();
-                case '/patients': return this.viewPatients();
-                case '/expenses': return this.viewExpenses();
-                case '/attendance': return this.viewAttendance();
-                default: return this.viewDashboard();
-            }
-        },
-
-        // --- COMPONENTS & VIEWS ---
-
-        viewLogin() {
-            return `
-                <div class="min-h-[85vh] flex items-center justify-center px-4">
-                    <div class="bg-white p-8 rounded-2xl shadow-xl border border-slate-100 max-w-md w-full">
-                        <div class="text-center mb-6">
-                            <h2 class="text-2xl font-bold text-slate-800">Staff Secure Portal</h2>
-                            <p class="text-sm text-slate-500 mt-1">Haskay Pharmacy Management System</p>
-                        </div>
-                        <div class="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-800 mb-4 leading-relaxed">
-                            💡 <strong>Dev Credential Key:</strong><br>
-                            Email: <code class="font-mono bg-white px-1 rounded">admin@haskay.com</code><br>
-                            Password: <code class="font-mono bg-white px-1 rounded">password123</code>
-                        </div>
-                        <form id="login-form" class="space-y-4">
-                            <div>
-                                <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Email Address</label>
-                                <input type="email" id="login-email" required class="w-full border border-slate-200 p-3 rounded-xl bg-slate-50 focus:bg-white focus:border-blue-500 transition-all text-sm" placeholder="Enter your email">
-                            </div>
-                            <div>
-                                <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Password</label>
-                                <input type="password" id="login-password" required class="w-full border border-slate-200 p-3 rounded-xl bg-slate-50 focus:bg-white focus:border-blue-500 transition-all text-sm" placeholder="••••••••">
-                            </div>
-                            <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white p-3 font-semibold rounded-xl transition-all shadow-md shadow-blue-200 text-sm mt-2">
-                                Login to Workspace
-                            </button>
-                        </form>
-                    </div>
-                </div>
-            `;
-        },
-
-        componentSidebar() {
-            const menuItems = [
-                { hash: '/dashboard', label: 'Dashboard Grid', icon: 'M4 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2v-4zM14 16a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2v-4z' },
-                { hash: '/patients', label: 'Patient Registry', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01' },
-                { hash: '/expenses', label: 'Overhead Log', icon: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
-                { hash: '/attendance', label: 'Staff Clocking', icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z' }
-            ];
-
-            return `
-                <aside class="w-64 bg-white border-r border-slate-200 flex flex-col shadow-sm">
-                    <div class="p-6 border-b border-slate-200">
-                        <h1 class="text-xl font-bold bg-gradient-to-r from-blue-600 to-emerald-600 bg-clip-text text-transparent">Haskay System</h1>
-                        <div class="flex items-center gap-2 mt-2">
-                            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                            <span class="text-xs font-medium text-slate-500">${this.state.user.email}</span>
-                        </div>
-                    </div>
-                    <nav class="flex-1 p-4 space-y-1">
-                        ${menuItems.map(item => `
-                            <a href="#${item.hash}" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${this.state.route === item.hash ? 'bg-blue-50 text-blue-700 font-semibold' : 'text-slate-600 hover:bg-slate-50'}">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${item.icon}"></path></svg>
-                                <span class="text-sm">${item.label}</span>
-                            </a>
-                        `).join('')}
-                    </nav>
-                    <div class="p-4 border-t border-slate-200">
-                        <button id="logout-btn" class="w-full flex items-center justify-center gap-2 text-sm font-medium text-rose-600 hover:bg-rose-50 p-2.5 rounded-xl transition-all">
-                            Sign Out Workspace
-                        </button>
-                    </div>
-                </aside>
-            `;
-        },
-
-        viewDashboard() {
-            return `
-                <div class="space-y-6">
-                    <div>
-                        <h2 class="text-2xl font-bold text-slate-800">Operational Summary</h2>
-                        <p class="text-slate-500 text-sm">Standalone mockup analytics overview.</p>
-                    </div>
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-                            <div class="text-slate-400 text-xs font-bold uppercase tracking-wider mb-1">Registered Profiles</div>
-                            <div class="text-3xl font-bold text-slate-800">${this.state.patients.length}</div>
-                        </div>
-                        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-                            <div class="text-slate-400 text-xs font-bold uppercase tracking-wider mb-1">Log Month Expense</div>
-                            <div class="text-3xl font-bold text-slate-800">GHS ${this.state.expenses.reduce((acc, curr) => acc + curr.amount, 0).toFixed(2)}</div>
-                        </div>
-                        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-                            <div class="text-slate-400 text-xs font-bold uppercase tracking-wider mb-1">Clocked Shifts Today</div>
-                            <div class="text-3xl font-bold text-emerald-600">${this.state.attendance.length} Active</div>
-                        </div>
-                    </div>
-                </div>
-            `;
-        },
-
-        viewPatients() {
-            return `
-                <div class="space-y-6">
-                    <div class="flex justify-between items-center">
-                        <div>
-                            <h2 class="text-2xl font-bold text-slate-800">Patient Registry</h2>
-                            <p class="text-slate-500 text-sm">Review active patient files stored inside memory array context.</p>
-                        </div>
-                    </div>
-                    <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
-                        <table class="w-full text-left border-collapse">
-                            <thead>
-                                <tr class="bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-600 uppercase">
-                                    <th class="p-4">Full Legal Name</th>
-                                    <th class="p-4">Date of Birth</th>
-                                    <th class="p-4">Contact Handle</th>
-                                    <th class="p-4">Clinical File Notes</th>
-                                </tr>
-                            </thead>
-                            <tbody class="text-sm text-slate-700 divide-y divide-slate-100">
-                                ${this.state.patients.map(p => `
-                                    <tr>
-                                        <td class="p-4 font-semibold text-slate-900">${p.name}</td>
-                                        <td class="p-4 text-slate-500">${p.dob}</td>
-                                        <td class="p-4 font-mono">${p.phone}</td>
-                                        <td class="p-4 text-slate-600 italic">${p.notes}</td>
-                                    </tr>
-                                `).join('')}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            `;
-        },
-
-        viewExpenses() {
-            return `
-                <div class="space-y-6">
-                    <div>
-                        <h2 class="text-2xl font-bold text-slate-800">Pharmacy Overhead Tracker</h2>
-                        <p class="text-slate-500 text-sm">Water, operational bills, and resource tracking metrics log layout.</p>
-                    </div>
-                    <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
-                        <table class="w-full text-left border-collapse">
-                            <thead>
-                                <tr class="bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-600 uppercase">
-                                    <th class="p-4">Expense Node Category</th>
-                                    <th class="p-4">Date Logged</th>
-                                    <th class="p-4">Description Text</th>
-                                    <th class="p-4">Amount Issued</th>
-                                </tr>
-                            </thead>
-                            <tbody class="text-sm text-slate-700 divide-y divide-slate-100">
-                                ${this.state.expenses.map(e => `
-                                    <tr>
-                                        <td class="p-4 font-medium"><span class="px-2 py-1 bg-slate-100 text-slate-700 rounded-md text-xs font-bold uppercase">${e.category}</span></td>
-                                        <td class="p-4 text-slate-500">${e.date}</td>
-                                        <td class="p-4 text-slate-600">${e.description}</td>
-                                        <td class="p-4 font-bold text-slate-900">GHS ${e.amount.toFixed(2)}</td>
-                                    </tr>
-                                `).join('')}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            `;
-        },
-
-        viewAttendance() {
-            return `
-                <div class="space-y-6">
-                    <div>
-                        <h2 class="text-2xl font-bold text-slate-800">Shift Timestamps</h2>
-                        <p class="text-slate-500 text-sm">Standalone roster shift tracking verification preview layout.</p>
-                    </div>
-                    <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
-                        <table class="w-full text-left border-collapse">
-                            <thead>
-                                <tr class="bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-600 uppercase">
-                                    <th class="p-4">Staff Member</th>
-                                    <th class="p-4">Logging Date</th>
-                                    <th class="p-4">Punch In</th>
-                                    <th class="p-4">Punch Out</th>
-                                    <th class="p-4">Exception Note</th>
-                                </tr>
-                            </thead>
-                            <tbody class="text-sm text-slate-700 divide-y divide-slate-100">
-                                ${this.state.attendance.map(a => `
-                                    <tr>
-                                        <td class="p-4 font-semibold text-slate-900">${a.staffName}</td>
-                                        <td class="p-4 text-slate-500">${a.date}</td>
-                                        <td class="p-4 font-mono text-emerald-600 font-medium">${a.checkIn}</td>
-                                        <td class="p-4 font-mono text-slate-500">${a.checkOut}</td>
-                                        <td class="p-4"><span class="px-2 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full text-xs font-medium">${a.status}</span></td>
-                                    </tr>
-                                `).join('')}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            `;
-        },
-
-        // --- HANDLERS & EVENTS ---
-
-        bindLoginEvents() {
-            document.getElementById('login-form')?.addEventListener('submit', (e) => {
-                e.preventDefault();
-                const email = document.getElementById('login-email').value.trim();
-                const password = document.getElementById('login-password').value;
-
-                if (email === 'admin@haskay.com' && password === 'password123') {
-                    this.state.user = { email: 'admin@haskay.com', role: 'admin' };
-                    this.showToast('Authentication check passed!', 'success');
-                    window.location.hash = '/dashboard';
-                } else {
-                    alert('Invalid credentials');
-                }
-            });
-        },
-
-        bindViewEvents() {
-            document.getElementById('logout-btn')?.addEventListener('click', () => {
-                this.state.user = null;
-                this.showToast('Logged out securely.', 'info');
-                window.location.hash = '/login';
-            });
-        },
-
-        bindViewEvents() {
-            document.getElementById('logout-btn')?.addEventListener('click', () => {
-                this.state.user = null;
-                this.showToast('Logged out safely.', 'success');
-                window.location.hash = '/login';
-            });
-        },
-
-        showToast(message, type = 'success') {
-            const container = document.getElementById('toast-container');
-            if (!container) return;
-            const toast = document.createElement('div');
-            toast.className = `p-4 rounded-xl shadow-xl text-white font-medium text-sm animate-slide-in ${type === 'success' ? 'bg-emerald-600 shadow-emerald-100' : 'bg-blue-600 shadow-blue-100'}`;
-            toast.textContent = message;
-            container.appendChild(toast);
-            setTimeout(() => toast.remove(), 3500);
-        }
-    };
-
-    window.addEventListener('DOMContentLoaded', () => App.init());
-    </script>
+<body class="bg-slate-50 min-h-screen antialiased">
+    <div id="app" class="min-h-screen"></div>
+    <div id="toast-container" class="fixed bottom-4 right-4 z-50 flex flex-col gap-2 max-w-sm"></div>
+    <div id="modal-root" class="fixed inset-0 z-50"></div>
+<script>
+const CONFIG = {
+  SUPABASE_URL: 'https://hqmskhywllcyievplmsm.supabase.co',
+  SUPABASE_ANON_KEY: 'sbp_405b71eaa69cd2a69f13d539c6f5c4ec4d8cf4ab2c8c',
+};
+const SupabaseManager = {
+  client: null, connected: false, mode: 'initializing',
+  async init() {
+    try {
+      if (!CONFIG.SUPABASE_URL || !CONFIG.SUPABASE_ANON_KEY || CONFIG.SUPABASE_URL.includes('YOUR_')) {
+        this.mode = 'offline'; return false;
+      }
+      this.client = supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY, {
+        auth: { persistSession: true, autoRefreshToken: true }
+      });
+      const { error } = await this.client.from('patients').select('count').limit(1).head();
+      if (error && !error.message.includes('does not exist') && !error.message.includes('relation')) {
+        this.mode = 'offline'; return false;
+      }
+      this.connected = true; this.mode = 'online'; return true;
+    } catch(e) { this.mode = 'offline'; return false; }
+  },
+  async signIn(email, password) {
+    if (this.mode === 'offline') {
+      if (email === 'admin@haskay.com' && password === 'password123')
+        return { user: { id:'local-admin', email, name:'Administrator' }, error: null };
+      const users = JSON.parse(localStorage.getItem('haskay_users')||'[]');
+      const u = users.find(u=>u.email===email && u.password===password);
+      return u ? {user:{id:u.id,email:u.email,name:u.name},error:null} : {user:null,error:{message:'Invalid credentials'}};
+    }
+    const { data, error } = await this.client.auth.signInWithPassword({ email, password });
+    return error ? {user:null,error} : {user:data.user,error:null};
+  },
+  async signUp(email, password, name) {
+    if (this.mode === 'offline') {
+      const users = JSON.parse(localStorage.getItem('haskay_users')||'[]');
+      if (users.find(u=>u.email===email)) return {user:null,error:{message:'Email already registered'}};
+      const u = {id:crypto.randomUUID(),email,password,name}; users.push(u);
+      localStorage.setItem('haskay_users',JSON.stringify(users));
+      return {user:u,error:null};
+    }
+    const { data, error } = await this.client.auth.signUp({ email, password, options:{data:{name}} });
+    return error ? {user:null,error} : {user:data.user,error:null};
+  },
+  async signOut() {
+    if (this.mode==='online' && this.client) await this.client.auth.signOut();
+    localStorage.removeItem('haskay_session');
+  },
+  async getSession() {
+    if (this.mode==='online' && this.client) { const {data}=await this.client.auth.getSession(); return data.session; }
+    return JSON.parse(localStorage.getItem('haskay_session')||'null');
+  },
+  async fetch(table) {
+    if (this.mode==='online' && this.client) {
+      try {
+        const { data, error } = await this.client.from(table).select('*').order('created_at',{ascending:false});
+        if (error) throw error;
+        localStorage.setItem('haskay_'+table, JSON.stringify(data)); return data;
+      } catch(e) { console.warn('Fetch fallback:', e.message); }
+    }
+    return JSON.parse(localStorage.getItem('haskay_'+table)||'[]');
+  },
+  async insert(table, record) {
+    if (this.mode==='online' && this.client) {
+      try {
+        const { data, error } = await this.client.from(table).insert(record).select();
+        if (error) throw error; return data[0];
+      } catch(e) { console.warn('Insert fallback:', e.message); }
+    }
+    const records = JSON.parse(localStorage.getItem('haskay_'+table)||'[]');
+    const r = { ...record, id:crypto.randomUUID(), created_at:new Date().toISOString(), updated_at:new Date().toISOString() };
+    records.unshift(r); localStorage.setItem('haskay_'+table, JSON.stringify(records)); return r;
+  },
+  async update(table, id, updates) {
+    if (this.mode==='online' && this.client) {
+      try {
+        const { data, error } = await this.client.from(table).update(updates).eq('id',id).select();
+        if (error) throw error; return data[0];
+      } catch(e) { console.warn('Update fallback:', e.message); }
+    }
+    const records = JSON.parse(localStorage.getItem('haskay_'+table)||'[]');
+    const i = records.findIndex(r=>r.id===id);
+    if (i!==-1) { records[i]={...records[i],...updates,updated_at:new Date().toISOString()}; localStorage.setItem('haskay_'+table,JSON.stringify(records)); return records[i]; }
+    return null;
+  },
+  async delete(table, id) {
+    if (this.mode==='online' && this.client) {
+      try { const { error } = await this.client.from(table).delete().eq('id',id); if (error) throw error; return true; }
+      catch(e) { console.warn('Delete fallback:', e.message); }
+    }
+    const records = JSON.parse(localStorage.getItem('haskay_'+table)||'[]');
+    localStorage.setItem('haskay_'+table, JSON.stringify(records.filter(r=>r.id!==id))); return true;
+  }
+};
+const App = {
+  state: { user:null, route:'/dashboard', loading:true, patients:[], documents:[], expenses:[], attendance:[], sidebarOpen:false, searchQuery:'' },
+  async init() {
+    await SupabaseManager.init();
+    const session = await SupabaseManager.getSession();
+    if (session) {
+      if (SupabaseManager.mode==='online') { const {data}=await SupabaseManager.client.auth.getUser(); this.state.user=data.user; }
+      else { this.state.user = session.user||session; }
+    }
+    if (!this.state.user) { const s=localStorage.getItem('haskay_session'); if (s) try{this.state.user=JSON.parse(s);}catch(e){} }
+    window.addEventListener('hashchange', ()=>this.handleRouting());
+    this.handleRouting();
+    if (this.state.user) await this.loadAllData();
+    this.state.loading = false; this.render();
+  },
+  async loadAllData() {
+    this.state.patients = await SupabaseManager.fetch('patients');
+    this.state.expenses = await SupabaseManager.fetch('expenses');
+    this.state.attendance = await SupabaseManager.fetch('attendance');
+    this.state.documents = await SupabaseManager.fetch('patient_documents');
+  },
+  handleRouting() {
+    this.state.route = window.location.hash.slice(1)||'/dashboard';
+    if (!this.state.user && this.state.route!=='/login') { window.location.hash='/login'; return; }
+    if (this.state.user && this.state.route==='/login') { window.location.hash='/dashboard'; return; }
+    this.render();
+  },
+  render() {
+    const app = document.getElementById('app');
+    if (this.state.loading) { app.innerHTML=this.viewLoading(); return; }
+    if (!this.state.user) { app.innerHTML=this.viewLogin(); this.bindLoginEvents(); return; }
+    app.innerHTML=this.viewMain(); this.bindMainEvents();
+  },
+  viewLoading() {
+    return `<div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-brand-50 to-slate-100"><div class="text-center"><div class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center shadow-lg shadow-brand-200"><svg class="w-9 h-9 text-white animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/></svg></div><p class="text-slate-400 text-sm font-medium">Loading Haskay…</p></div></div>`;
+  },
+  viewLogin() {
+    const mode = SupabaseManager.mode;
+    return `<div class="min-h-screen flex items-center justify-center px-4 py-8 bg-gradient-to-br from-brand-600 via-brand-700 to-slate-900"><div class="absolute inset-0 overflow-hidden opacity-10"><div class="absolute top-0 left-0 w-96 h-96 bg-brand-400 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2"></div><div class="absolute bottom-0 right-0 w-96 h-96 bg-teal-300 rounded-full blur-3xl translate-x-1/2 translate-y-1/2"></div></div><div class="relative w-full max-w-md scale-in"><div class="text-center mb-8"><div class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center"><svg class="w-9 h-9 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/></svg></div><h1 class="text-2xl font-bold text-white">Haskay Pharmacy & Labs</h1><p class="text-brand-200 text-sm mt-1">Management System</p></div><div class="bg-white rounded-3xl shadow-2xl p-8"><div class="flex gap-2 mb-6 p-1 bg-slate-100 rounded-xl"><button id="tab-login" class="flex-1 py-2.5 rounded-lg text-sm font-semibold bg-white text-slate-800 shadow-sm transition-all">Sign In</button><button id="tab-register" class="flex-1 py-2.5 rounded-lg text-sm font-semibold text-slate-500 transition-all">Register</button></div><div id="mode-badge" class="mb-4 px-3 py-2 rounded-xl text-xs font-medium flex items-center gap-2 ${mode==='online'?'bg-emerald-50 text-emerald-700':'bg-amber-50 text-amber-700'}"><span class="w-2 h-2 rounded-full ${mode==='online'?'bg-emerald-500':'bg-amber-500 pulse-dot'}"></span>${mode==='online'?'Connected to cloud':'Offline mode — data saved locally'}</div><form id="login-form" class="space-y-4"><div><label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Email Address</label><div class="relative"><svg class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg><input type="email" id="login-email" required class="w-full pl-9 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-100 transition-all text-sm outline-none" placeholder="you@haskay.com"></div></div><div><label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Password</label><div class="relative"><svg class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg><input type="password" id="login-password" required class="w-full pl-9 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-100 transition-all text-sm outline-none" placeholder="••••••••"></div></div><button type="submit" class="w-full bg-gradient-to-r from-brand-600 to-brand-700 hover:from-brand-700 hover:to-brand-800 text-white py-3.5 font-semibold rounded-xl transition-all shadow-lg shadow-brand-200 text-sm flex items-center justify-center gap-2"><span>Sign In</span><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg></button></form><form id="register-form" class="space-y-4 hidden"><div><label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Full Name</label><input type="text" id="register-name" required class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-100 transition-all text-sm outline-none" placeholder="Your full name"></div><div><label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Email Address</label><input type="email" id="register-email" required class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-100 transition-all text-sm outline-none" placeholder="you@haskay.com"></div><div><label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Password</label><input type="password" id="register-password" required minlength="6" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-100 transition-all text-sm outline-none" placeholder="Minimum 6 characters"></div><button type="submit" class="w-full bg-gradient-to-r from-brand-600 to-brand-700 hover:from-brand-700 hover:to-brand-800 text-white py-3.5 font-semibold rounded-xl transition-all shadow-lg shadow-brand-200 text-sm">Create Account</button></form><p class="text-center text-xs text-slate-400 mt-5">${mode==='offline'?'Demo: <code class="font-mono bg-slate-100 px-1.5 py-0.5 rounded text-slate-600">admin@haskay.com</code> / <code class="font-mono bg-slate-100 px-1.5 py-0.5 rounded text-slate-600">password123</code>':'Secure cloud authentication enabled'}</p></div><p class="text-center text-xs text-brand-200/60 mt-6">© 2026 Haskay and Labs. All rights reserved.</p></div></div>`;
+  },
+  bindLoginEvents() {
+    const tL=document.getElementById('tab-login'),tR=document.getElementById('tab-register'),lF=document.getElementById('login-form'),rF=document.getElementById('register-form');
+    tL?.addEventListener('click',()=>{tL.classList.add('bg-white','text-slate-800','shadow-sm');tL.classList.remove('text-slate-500');tR.classList.remove('bg-white','text-slate-800','shadow-sm');tR.classList.add('text-slate-500');lF.classList.remove('hidden');rF.classList.add('hidden');});
+    tR?.addEventListener('click',()=>{tR.classList.add('bg-white','text-slate-800','shadow-sm');tR.classList.remove('text-slate-500');tL.classList.remove('bg-white','text-slate-800','shadow-sm');tL.classList.add('text-slate-500');rF.classList.remove('hidden');lF.classList.add('hidden');});
+    lF?.addEventListener('submit',async(e)=>{e.preventDefault();const email=document.getElementById('login-email').value,password=document.getElementById('login-password').value;const btn=lF.querySelector('button[type="submit"]');btn.disabled=true;btn.innerHTML='<span class="animate-pulse">Signing in…</span>';const{user,error}=await SupabaseManager.signIn(email,password);if(error){this.toast(error.message||'Login failed','error');btn.disabled=false;btn.innerHTML='<span>Sign In</span>';return;}this.state.user=user;localStorage.setItem('haskay_session',JSON.stringify(user));await this.loadAllData();window.location.hash='/dashboard';this.render();this.toast('Welcome back!','success');});
+    rF?.addEventListener('submit',async(e)=>{e.preventDefault();const email=document.getElementById('register-email').value,password=document.getElementById('register-password').value,name=document.getElementById('register-name').value;const btn=rF.querySelector('button[type="submit"]');btn.disabled=true;btn.innerHTML='<span class="animate-pulse">Creating…</span>';const{user,error}=await SupabaseManager.signUp(email,password,name);if(error){this.toast(error.message||'Registration failed','error');btn.disabled=false;btn.innerHTML='Create Account';return;}this.state.user=user;localStorage.setItem('haskay_session',JSON.stringify(user));window.location.hash='/dashboard';this.render();this.toast('Account created!','success');});
+  },
+  viewMain() {
+    return `<div class="flex min-h-screen">${this.componentSidebar()}<div class="flex-1 flex flex-col min-w-0 lg:ml-0">${this.componentTopBar()}<main class="flex-1 overflow-y-auto bg-slate-50 p-4 md:p-8 pb-20 lg:pb-8" id="main-content"><div class="max-w-7xl mx-auto slide-up">${this.getRouteView()}</div></main>${this.componentMobileNav()}</div></div>`;
+  },
+  componentSidebar() {
+    const items=[{hash:'/dashboard',label:'Dashboard',icon:'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6'},{hash:'/patients',label:'Patients',icon:'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z'},{hash:'/documents',label:'Documents',icon:'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'},{hash:'/expenses',label:'Expenses',icon:'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z'},{hash:'/attendance',label:'Attendance',icon:'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z'}];
+    const u=this.state.user||{};const name=u.user_metadata?.name||u.name||u.email?.split('@')[0]||'User';const init=(name[0]||'U').toUpperCase();
+    return `<aside id="sidebar" class="fixed lg:sticky top-0 left-0 h-screen w-64 bg-white border-r border-slate-200 flex-col z-40 transform ${this.state.sidebarOpen?'translate-x-0':'-translate-x-full'} lg:translate-x-0 transition-transform duration-300 flex"><div class="p-5 border-b border-slate-100"><div class="flex items-center gap-3"><div class="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center shadow-md shadow-brand-200"><svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/></svg></div><div><h1 class="text-base font-bold text-slate-800 leading-tight">Haskay</h1><p class="text-xs text-slate-400">Pharmacy & Labs</p></div></div></div><nav class="flex-1 p-3 space-y-1 overflow-y-auto" role="navigation" aria-label="Main navigation">${items.map(i=>`<a href="#${i.hash}" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 transition-all ${this.state.route===i.hash?'active':''}" aria-current="${this.state.route===i.hash?'page':'false'}"><svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${i.icon}"/></svg><span>${i.label}</span></a>`).join('')}</nav><div class="p-3 border-t border-slate-100"><div class="flex items-center gap-3 px-3 py-2 mb-2"><div class="w-9 h-9 rounded-full bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white font-semibold text-sm">${init}</div><div class="min-w-0"><p class="text-sm font-semibold text-slate-700 truncate">${name}</p><p class="text-xs text-slate-400 truncate">${u.email||''}</p></div></div><div class="flex items-center gap-2 mb-2 px-3"><span class="w-2 h-2 rounded-full ${SupabaseManager.mode==='online'?'bg-emerald-500':'bg-amber-500 pulse-dot'}"></span><span class="text-xs text-slate-400">${SupabaseManager.mode==='online'?'Cloud connected':'Offline mode'}</span></div><button id="logout-btn" class="w-full flex items-center justify-center gap-2 text-sm font-medium text-rose-600 hover:bg-rose-50 py-2.5 rounded-xl transition-all"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>Sign Out</button></div></aside>${this.state.sidebarOpen?'<div id="sidebar-overlay" class="fixed inset-0 bg-black/40 z-30 lg:hidden"></div>':''}`;
+  },
+  componentTopBar() {
+    const titles={'/dashboard':'Dashboard','/patients':'Patient Registry','/documents':'Patient Documents','/expenses':'Expense Tracker','/attendance':'Staff Attendance'};
+    const title=titles[this.state.route]||'Haskay';
+    return `<header class="sticky top-0 z-20 bg-white/80 backdrop-blur-md border-b border-slate-200 px-4 md:px-8 py-3.5 flex items-center justify-between"><div class="flex items-center gap-3"><button id="menu-toggle" class="lg:hidden p-2 rounded-lg hover:bg-slate-100" aria-label="Toggle menu"><svg class="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg></button><div><h2 class="text-lg font-bold text-slate-800">${title}</h2><p class="text-xs text-slate-400 hidden sm:block">${new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}</p></div></div><div class="flex items-center gap-2"><div class="relative hidden sm:block"><svg class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg><input type="text" id="global-search" placeholder="Search…" class="w-48 md:w-64 pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-100 outline-none transition-all"></div><button class="p-2.5 rounded-xl hover:bg-slate-100 transition-all" aria-label="Notifications"><svg class="w-5 h-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg></button></div></header>`;
+  },
+  componentMobileNav() {
+    const items=[{hash:'/dashboard',label:'Home',icon:'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6'},{hash:'/patients',label:'Patients',icon:'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z'},{hash:'/documents',label:'Docs',icon:'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'},{hash:'/expenses',label:'Costs',icon:'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z'},{hash:'/attendance',label:'Clock',icon:'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z'}];
+    return `<nav class="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 px-2 py-1.5 z-30 mobile-nav flex justify-around" role="navigation" aria-label="Mobile navigation">${items.map(i=>`<a href="#${i.hash}" class="flex flex-col items-center gap-0.5 px-3 py-2 rounded-xl transition-all ${this.state.route===i.hash?'text-brand-600':'text-slate-400'}" aria-current="${this.state.route===i.hash?'page':'false'}"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${i.icon}"/></svg><span class="text-[10px] font-medium">${i.label}</span></a>`).join('')}</nav>`;
+  },
+  getRouteView() {
+    switch(this.state.route){
+      case'/dashboard':return this.viewDashboard();
+      case'/patients':return this.viewPatients();
+      case'/documents':return this.viewDocuments();
+      case'/expenses':return this.viewExpenses();
+      case'/attendance':return this.viewAttendance();
+      default:return this.viewDashboard();
+    }
+  },
+  viewDashboard(){
+    const tp=this.state.patients.length;const te=this.state.expenses.reduce((s,e)=>s+(parseFloat(e.amount)||0),0);
+    const at=this.state.attendance.filter(a=>a.date===new Date().toISOString().split('T')[0]).length;
+    const td=this.state.documents.length;const rp=[...this.state.patients].slice(0,5);const re=[...this.state.expenses].slice(0,4);
+    const uname=this.state.user?.user_metadata?.name||this.state.user?.name||this.state.user?.email?.split('@')[0]||'Admin';
+    return `<div class="space-y-6"><div class="bg-gradient-to-br from-brand-600 to-brand-800 rounded-3xl p-6 md:p-8 text-white relative overflow-hidden"><div class="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2"></div><div class="relative"><p class="text-brand-200 text-sm font-medium mb-1">Welcome back,</p><h2 class="text-2xl font-bold">${uname} 👋</h2><p class="text-brand-100 text-sm mt-2 max-w-md">Here's what's happening at Haskay Pharmacy today.</p></div></div><div class="grid grid-cols-2 lg:grid-cols-4 gap-4"><div class="bg-white rounded-2xl p-5 border border-slate-200 card-hover"><div class="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center mb-3"><svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg></div><p class="text-2xl font-bold text-slate-800">${tp}</p><p class="text-xs text-slate-400 font-medium">Registered Patients</p></div><div class="bg-white rounded-2xl p-5 border border-slate-200 card-hover"><div class="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center mb-3"><svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div><p class="text-2xl font-bold text-slate-800">GHS ${te.toFixed(2)}</p><p class="text-xs text-slate-400 font-medium">Total Expenses</p></div><div class="bg-white rounded-2xl p-5 border border-slate-200 card-hover"><div class="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center mb-3"><svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div><p class="text-2xl font-bold text-slate-800">${at}</p><p class="text-xs text-slate-400 font-medium">Staff On Today</p></div><div class="bg-white rounded-2xl p-5 border border-slate-200 card-hover"><div class="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center mb-3"><svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg></div><p class="text-2xl font-bold text-slate-800">${td}</p><p class="text-xs text-slate-400 font-medium">Documents</p></div></div><div class="grid lg:grid-cols-2 gap-6"><div class="bg-white rounded-2xl border border-slate-200 overflow-hidden"><div class="flex items-center justify-between p-5 border-b border-slate-100"><h3 class="font-bold text-slate-800">Recent Patients</h3><a href="#/patients" class="text-xs font-semibold text-brand-600 hover:text-brand-700">View all →</a></div><div class="divide-y divide-slate-50">${rp.length?rp.map(p=>`<div class="flex items-center gap-3 p-4 hover:bg-slate-50 transition-colors"><div class="w-10 h-10 rounded-full bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white font-semibold text-sm flex-shrink-0">${(p.full_name||p.name||'?')[0].toUpperCase()}</div><div class="min-w-0 flex-1"><p class="text-sm font-semibold text-slate-700 truncate">${p.full_name||p.name}</p><p class="text-xs text-slate-400 truncate">${p.phone||p.email||'No contact'}</p></div><span class="text-xs text-slate-400">${p.status||'Active'}</span></div>`).join(''):'<p class="p-6 text-sm text-slate-400 text-center">No patients yet</p>'}</div></div><div class="bg-white rounded-2xl border border-slate-200 overflow-hidden"><div class="flex items-center justify-between p-5 border-b border-slate-100"><h3 class="font-bold text-slate-800">Recent Expenses</h3><a href="#/expenses" class="text-xs font-semibold text-brand-600 hover:text-brand-700">View all →</a></div><div class="divide-y divide-slate-50">${re.length?re.map(e=>`<div class="flex items-center justify-between p-4 hover:bg-slate-50 transition-colors"><div class="flex items-center gap-3"><div class="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center"><svg class="w-5 h-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8"/></svg></div><div><p class="text-sm font-semibold text-slate-700">${e.category||'General'}</p><p class="text-xs text-slate-400">${e.date||e.created_at?.split('T')[0]||''}</p></div></div><p class="text-sm font-bold text-slate-800">GHS ${(parseFloat(e.amount)||0).toFixed(2)}</p></div>`).join(''):'<p class="p-6 text-sm text-slate-400 text-center">No expenses logged</p>'}</div></div></div></div>`;
+  },
+  viewPatients(){
+    const ps=this.state.patients;const q=this.state.searchQuery.toLowerCase();
+    const fl=q?ps.filter(p=>(p.full_name||p.name||'').toLowerCase().includes(q)||(p.phone||'').toLowerCase().includes(q)||(p.patient_id||'').toLowerCase().includes(q)):ps;
+    return `<div class="space-y-5"><div class="flex flex-col sm:flex-row justify-between gap-3 sm:items-center"><div><h3 class="text-xl font-bold text-slate-800">Patient Registry</h3><p class="text-sm text-slate-400">${fl.length} patient${fl.length!==1?'s':''} ${q?'matching "'+this.state.searchQuery+'"':'total'}</p></div><button id="add-patient-btn" class="bg-gradient-to-r from-brand-600 to-brand-700 text-white px-4 py-2.5 rounded-xl text-sm font-semibold hover:shadow-lg hover:shadow-brand-200 transition-all flex items-center justify-center gap-2"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/></svg>Add Patient</button></div>${fl.length===0?`<div class="bg-white rounded-2xl border border-slate-200 p-12 text-center"><div class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-slate-100 flex items-center justify-center"><svg class="w-8 h-8 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg></div><h3 class="font-semibold text-slate-700 mb-1">${q?'No patients found':'No patients yet'}</h3><p class="text-sm text-slate-400 mb-4">${q?'Try a different search term':'Add your first patient to get started'}</p>${!q?'<button id="add-patient-btn-2" class="text-brand-600 font-semibold text-sm hover:text-brand-700">+ Add Patient</button>':''}</div>`:`<div class="hidden md:block bg-white rounded-2xl border border-slate-200 overflow-hidden"><table class="w-full text-left"><thead><tr class="bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-500 uppercase tracking-wider"><th class="p-4">Patient</th><th class="p-4">Patient ID</th><th class="p-4">Contact</th><th class="p-4">Blood Type</th><th class="p-4">Status</th><th class="p-4 text-right">Actions</th></tr></thead><tbody class="divide-y divide-slate-50">${fl.map(p=>`<tr class="hover:bg-slate-50 transition-colors"><td class="p-4"><div class="flex items-center gap-3"><div class="w-9 h-9 rounded-full bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white font-semibold text-xs flex-shrink-0">${(p.full_name||p.name||'?')[0].toUpperCase()}</div><div><p class="text-sm font-semibold text-slate-700">${p.full_name||p.name}</p><p class="text-xs text-slate-400">${p.date_of_birth||p.dob||'DOB not set'}</p></div></div></td><td class="p-4"><span class="font-mono text-xs text-slate-500">${p.patient_id||'—'}</span></td><td class="p-4"><span class="text-sm text-slate-600">${p.phone||'—'}</span></td><td class="p-4"><span class="px-2 py-1 bg-slate-100 rounded-md text-xs font-bold ${p.blood_type?'text-rose-600':'text-slate-400'}">${p.blood_type||'—'}</span></td><td class="p-4"><span class="px-2.5 py-1 rounded-full text-xs font-semibold ${p.status==='Active'||!p.status?'bg-emerald-50 text-emerald-600':'bg-slate-100 text-slate-500'}">${p.status||'Active'}</span></td><td class="p-4 text-right"><button class="view-patient-btn text-slate-400 hover:text-brand-600 p-1.5 rounded-lg hover:bg-brand-50 transition-all" data-id="${p.id}" aria-label="View patient"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg></button><button class="edit-patient-btn text-slate-400 hover:text-blue-600 p-1.5 rounded-lg hover:bg-blue-50 transition-all" data-id="${p.id}" aria-label="Edit patient"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg></button><button class="delete-patient-btn text-slate-400 hover:text-rose-600 p-1.5 rounded-lg hover:bg-rose-50 transition-all" data-id="${p.id}" aria-label="Delete patient"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button></td></tr>`).join('')}</tbody></table></div><div class="md:hidden space-y-3">${fl.map(p=>`<div class="bg-white rounded-2xl border border-slate-200 p-4 card-hover"><div class="flex items-start justify-between mb-3"><div class="flex items-center gap-3"><div class="w-10 h-10 rounded-full bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white font-semibold text-sm">${(p.full_name||p.name||'?')[0].toUpperCase()}</div><div><p class="font-semibold text-slate-800 text-sm">${p.full_name||p.name}</p><p class="text-xs text-slate-400">${p.phone||'No phone'}</p></div></div><span class="px-2 py-0.5 rounded-full text-xs font-semibold ${p.status==='Active'||!p.status?'bg-emerald-50 text-emerald-600':'bg-slate-100 text-slate-500'}">${p.status||'Active'}</span></div><div class="flex gap-2 text-xs text-slate-400">${p.blood_type?`<span class="px-2 py-1 bg-rose-50 text-rose-600 rounded-md font-bold">${p.blood_type}</span>`:''}${p.allergies?`<span class="px-2 py-1 bg-amber-50 text-amber-600 rounded-md">⚠ ${p.allergies}</span>`:''}</div><div class="flex gap-2 mt-3 pt-3 border-t border-slate-50"><button class="view-patient-btn flex-1 text-xs font-semibold text-brand-600 bg-brand-50 py-2 rounded-lg" data-id="${p.id}">View</button><button class="edit-patient-btn flex-1 text-xs font-semibold text-blue-600 bg-blue-50 py-2 rounded-lg" data-id="${p.id}">Edit</button><button class="delete-patient-btn flex-1 text-xs font-semibold text-rose-600 bg-rose-50 py-2 rounded-lg" data-id="${p.id}">Delete</button></div></div>`).join('')}</div>`}</div>`;
+  },
+  viewDocuments(){
+    const docs=this.state.documents;
+    return `<div class="space-y-5"><div class="flex flex-col sm:flex-row justify-between gap-3 sm:items-center"><div><h3 class="text-xl font-bold text-slate-800">Patient Documents</h3><p class="text-sm text-slate-400">${docs.length} document${docs.length!==1?'s':''} stored</p></div><button id="add-doc-btn" class="bg-gradient-to-r from-brand-600 to-brand-700 text-white px-4 py-2.5 rounded-xl text-sm font-semibold hover:shadow-lg hover:shadow-brand-200 transition-all flex items-center justify-center gap-2"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>Add Document</button></div>${docs.length===0?`<div class="bg-white rounded-2xl border border-slate-200 p-12 text-center"><div class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-slate-100 flex items-center justify-center"><svg class="w-8 h-8 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg></div><h3 class="font-semibold text-slate-700 mb-1">No documents yet</h3><p class="text-sm text-slate-400 mb-4">Upload prescriptions, lab results, or voice notes for patients</p></div>`:`<div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">${docs.map(d=>`<div class="bg-white rounded-2xl border border-slate-200 p-4 card-hover"><div class="flex items-start justify-between mb-3"><div class="w-10 h-10 rounded-xl ${d.input_method==='voice'?'bg-purple-50':'bg-blue-50'} flex items-center justify-center"><svg class="w-5 h-5 ${d.input_method==='voice'?'text-purple-600':'text-blue-600'}" fill="none" stroke="currentColor" viewBox="0 0 24 24">${d.input_method==='voice'?'<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/>':'<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>'}</svg></div><span class="px-2 py-1 bg-slate-100 rounded-md text-xs font-medium text-slate-500">${d.document_type||'Document'}</span></div><h4 class="font-semibold text-slate-700 text-sm mb-1 truncate">${d.title}</h4><p class="text-xs text-slate-400 mb-2">${d.patient_name||'Unknown patient'}</p>${d.ai_summary?`<p class="text-xs text-slate-500 bg-slate-50 p-2 rounded-lg mb-2">${d.ai_summary}</p>`:''}<div class="flex items-center justify-between pt-2 border-t border-slate-50"><span class="text-xs text-slate-400">${d.date_recorded?.split('T')[0]||d.created_at?.split('T')[0]||''}</span><div class="flex gap-1"><button class="delete-doc-btn p-1.5 rounded-lg hover:bg-rose-50 text-slate-400 hover:text-rose-600" data-id="${d.id}"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button></div></div></div>`).join('')}</div>`}</div>`;
+  },
+  viewExpenses(){
+    const ex=this.state.expenses;const total=ex.reduce((s,e)=>s+(parseFloat(e.amount)||0),0);
+    const today=ex.filter(e=>(e.date||e.created_at?.split('T')[0])===new Date().toISOString().split('T')[0]);
+    const tt=today.reduce((s,e)=>s+(parseFloat(e.amount)||0),0);
+    return `<div class="space-y-5"><div class="flex flex-col sm:flex-row justify-between gap-3 sm:items-center"><div><h3 class="text-xl font-bold text-slate-800">Expense Tracker</h3><p class="text-sm text-slate-400">Manage pharmacy overhead costs</p></div><button id="add-expense-btn" class="bg-gradient-to-r from-brand-600 to-brand-700 text-white px-4 py-2.5 rounded-xl text-sm font-semibold hover:shadow-lg hover:shadow-brand-200 transition-all flex items-center justify-center gap-2"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>Add Expense</button></div><div class="grid grid-cols-2 lg:grid-cols-3 gap-4"><div class="bg-white rounded-2xl p-5 border border-slate-200"><p class="text-xs text-slate-400 font-semibold uppercase tracking-wider mb-1">Total Expenses</p><p class="text-2xl font-bold text-slate-800">GHS ${total.toFixed(2)}</p></div><div class="bg-white rounded-2xl p-5 border border-slate-200"><p class="text-xs text-slate-400 font-semibold uppercase tracking-wider mb-1">Today's Spend</p><p class="text-2xl font-bold text-emerald-600">GHS ${tt.toFixed(2)}</p></div><div class="bg-white rounded-2xl p-5 border border-slate-200 col-span-2 lg:col-span-1"><p class="text-xs text-slate-400 font-semibold uppercase tracking-wider mb-1">Entries</p><p class="text-2xl font-bold text-slate-800">${ex.length}</p></div></div>${ex.length===0?`<div class="bg-white rounded-2xl border border-slate-200 p-12 text-center"><div class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-slate-100 flex items-center justify-center"><svg class="w-8 h-8 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8"/></svg></div><h3 class="font-semibold text-slate-700 mb-1">No expenses logged</h3><p class="text-sm text-slate-400">Track your pharmacy overhead costs here</p></div>`:`<div class="bg-white rounded-2xl border border-slate-200 overflow-hidden"><div class="divide-y divide-slate-50">${ex.map(e=>`<div class="flex items-center justify-between p-4 hover:bg-slate-50 transition-colors"><div class="flex items-center gap-3 min-w-0 flex-1"><div class="w-10 h-10 rounded-xl ${e.category==='Water'?'bg-blue-50 text-blue-600':e.category==='Overhead'?'bg-amber-50 text-amber-600':'bg-slate-100 text-slate-600'} flex items-center justify-center flex-shrink-0"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8"/></svg></div><div class="min-w-0"><p class="text-sm font-semibold text-slate-700">${e.category||'General'}</p><p class="text-xs text-slate-400 truncate">${e.description||''} • ${e.date||e.created_at?.split('T')[0]||''}</p></div></div><div class="flex items-center gap-3 flex-shrink-0"><p class="text-sm font-bold text-slate-800">GHS ${(parseFloat(e.amount)||0).toFixed(2)}</p><button class="delete-expense-btn p-1.5 rounded-lg hover:bg-rose-50 text-slate-400 hover:text-rose-600 transition-all" data-id="${e.id}"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button></div></div>`).join('')}</div></div>`}</div>`;
+  },
+  viewAttendance(){
+    const att=this.state.attendance;const today=new Date().toISOString().split('T')[0];
+    const tr=att.filter(a=>a.date===today);const now=new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+    return `<div class="space-y-5"><div class="flex flex-col sm:flex-row justify-between gap-3 sm:items-center"><div><h3 class="text-xl font-bold text-slate-800">Staff Attendance</h3><p class="text-sm text-slate-400">Track staff check-ins and check-outs</p></div><div class="flex gap-2"><button id="check-in-btn" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-all flex items-center gap-2"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>Check In</button><button id="check-out-btn" class="bg-rose-600 hover:bg-rose-700 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-all flex items-center gap-2"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>Check Out</button></div></div><div class="grid grid-cols-2 lg:grid-cols-3 gap-4"><div class="bg-white rounded-2xl p-5 border border-slate-200"><p class="text-xs text-slate-400 font-semibold uppercase tracking-wider mb-1">Present Today</p><p class="text-2xl font-bold text-emerald-600">${tr.length}</p></div><div class="bg-white rounded-2xl p-5 border border-slate-200"><p class="text-xs text-slate-400 font-semibold uppercase tracking-wider mb-1">Total Records</p><p class="text-2xl font-bold text-slate-800">${att.length}</p></div><div class="bg-white rounded-2xl p-5 border border-slate-200 col-span-2 lg:col-span-1"><p class="text-xs text-slate-400 font-semibold uppercase tracking-wider mb-1">Current Time</p><p class="text-2xl font-bold text-slate-800">${now}</p></div></div>${att.length===0?`<div class="bg-white rounded-2xl border border-slate-200 p-12 text-center"><div class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-slate-100 flex items-center justify-center"><svg class="w-8 h-8 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div><h3 class="font-semibold text-slate-700 mb-1">No attendance records</h3><p class="text-sm text-slate-400">Check in to start tracking</p></div>`:`<div class="bg-white rounded-2xl border border-slate-200 overflow-hidden"><table class="w-full text-left"><thead><tr class="bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-500 uppercase tracking-wider"><th class="p-4">Staff Member</th><th class="p-4">Date</th><th class="p-4">Check In</th><th class="p-4">Check Out</th><th class="p-4">Status</th></tr></thead><tbody class="divide-y divide-slate-50">${att.map(a=>`<tr class="hover:bg-slate-50 transition-colors"><td class="p-4"><div class="flex items-center gap-2"><div class="w-8 h-8 rounded-full bg-gradient-to-br from-slate-400 to-slate-600 flex items-center justify-center text-white font-semibold text-xs">${(a.staffName||'S')[0].toUpperCase()}</div><span class="text-sm font-semibold text-slate-700">${a.staffName||'Unknown'}</span></div></td><td class="p-4 text-sm text-slate-500">${a.date}</td><td class="p-4 text-sm text-emerald-600 font-medium">${a.checkIn||'—'}</td><td class="p-4 text-sm text-rose-600 font-medium">${a.checkOut||'—'}</td><td class="p-4"><span class="px-2.5 py-1 rounded-full text-xs font-semibold ${a.status==='On Time'?'bg-emerald-50 text-emerald-600':'bg-amber-50 text-amber-600'}">${a.status||'Pending'}</span></td></tr>`).join('')}</tbody></table></div>`}</div>`;
+  },
+  openModal(content){
+    document.getElementById('modal-root').innerHTML=`<div class="fixed inset-0 bg-black/40 backdrop-blur-sm fade-in flex items-center justify-center p-4 z-50" id="modal-overlay"><div class="bg-white rounded-3xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto scale-in" id="modal-content">${content}</div></div>`;
+    document.getElementById('modal-overlay')?.addEventListener('click',(e)=>{if(e.target.id==='modal-overlay')this.closeModal();});
+  },
+  closeModal(){document.getElementById('modal-root').innerHTML='';},
+  modalPatient(p){
+    p=p||{};const title=p.id?'Edit Patient':'Add New Patient';
+    return `<div class="p-6"><div class="flex items-center justify-between mb-6"><h3 class="text-lg font-bold text-slate-800">${title}</h3><button id="modal-close" class="p-2 rounded-lg hover:bg-slate-100 text-slate-400"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button></div><form id="patient-form" class="space-y-4"><div class="grid grid-cols-2 gap-3"><div><label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Full Name *</label><input type="text" name="full_name" required value="${p.full_name||p.name||''}" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-100 outline-none transition-all"></div><div><label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Patient ID</label><input type="text" name="patient_id" value="${p.patient_id||'HP-'+Math.random().toString(36).substr(2,6).toUpperCase()}" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-mono focus:bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-100 outline-none transition-all"></div></div><div class="grid grid-cols-2 gap-3"><div><label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Date of Birth</label><input type="date" name="date_of_birth" value="${p.date_of_birth||p.dob||''}" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-100 outline-none transition-all"></div><div><label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Gender</label><select name="gender" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-100 outline-none transition-all"><option value="">Select…</option><option value="Male" ${p.gender==='Male'?'selected':''}>Male</option><option value="Female" ${p.gender==='Female'?'selected':''}>Female</option><option value="Other" ${p.gender==='Other'?'selected':''}>Other</option></select></div></div><div class="grid grid-cols-2 gap-3"><div><label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Phone</label><input type="tel" name="phone" value="${p.phone||''}" placeholder="0244XXXXXX" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-100 outline-none transition-all"></div><div><label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Email</label><input type="email" name="email" value="${p.email||''}" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-100 outline-none transition-all"></div></div><div><label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Address</label><input type="text" name="address" value="${p.address||''}" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-100 outline-none transition-all"></div><div class="grid grid-cols-2 gap-3"><div><label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Blood Type</label><select name="blood_type" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-100 outline-none transition-all"><option value="">Unknown</option>${['A+','A-','B+','B-','AB+','AB-','O+','O-'].map(bt=>`<option value="${bt}" ${p.blood_type===bt?'selected':''}>${bt}</option>`).join('')}</select></div><div><label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Status</label><select name="status" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-100 outline-none transition-all"><option value="Active" ${p.status==='Active'||!p.status?'selected':''}>Active</option><option value="Inactive" ${p.status==='Inactive'?'selected':''}>Inactive</option></select></div></div><div><label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Allergies</label><input type="text" name="allergies" value="${p.allergies||''}" placeholder="e.g. Penicillin, Sulfa drugs" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-100 outline-none transition-all"></div><div><label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Clinical Notes</label><textarea name="notes" rows="3" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-100 outline-none transition-all resize-none">${p.notes||''}</textarea></div><div class="flex gap-3 pt-2"><button type="button" id="modal-cancel" class="flex-1 py-2.5 border border-slate-200 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-all">Cancel</button><button type="submit" class="flex-1 py-2.5 bg-gradient-to-r from-brand-600 to-brand-700 text-white rounded-xl text-sm font-semibold hover:shadow-lg hover:shadow-brand-200 transition-all">${p.id?'Save Changes':'Add Patient'}</button></div></form></div>`;
+  },
+  modalExpense(e){
+    e=e||{};const title=e.id?'Edit Expense':'Add Expense';
+    return `<div class="p-6"><div class="flex items-center justify-between mb-6"><h3 class="text-lg font-bold text-slate-800">${title}</h3><button id="modal-close" class="p-2 rounded-lg hover:bg-slate-100 text-slate-400"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button></div><form id="expense-form" class="space-y-4"><div><label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Category *</label><select name="category" required class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-100 outline-none transition-all"><option value="">Select category…</option>${['Water','Electricity','Internet','Rent','Supplies','Transport','Salary','Maintenance','Other'].map(c=>`<option value="${c}" ${e.category===c?'selected':''}>${c}</option>`).join('')}</select></div><div><label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Amount (GHS) *</label><input type="number" name="amount" required step="0.01" min="0" value="${e.amount||''}" placeholder="0.00" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-100 outline-none transition-all"></div><div><label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Date</label><input type="date" name="date" value="${e.date||new Date().toISOString().split('T')[0]}" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-100 outline-none transition-all"></div><div><label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Description</label><textarea name="description" rows="2" placeholder="Optional notes…" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-100 outline-none transition-all resize-none">${e.description||''}</textarea></div><div class="flex gap-3 pt-2"><button type="button" id="modal-cancel" class="flex-1 py-2.5 border border-slate-200 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-all">Cancel</button><button type="submit" class="flex-1 py-2.5 bg-gradient-to-r from-brand-600 to-brand-700 text-white rounded-xl text-sm font-semibold hover:shadow-lg hover:shadow-brand-200 transition-all">${e.id?'Save':'Add Expense'}</button></div></form></div>`;
+  },
+  modalPatientDetail(p){
+    return `<div class="p-6"><div class="flex items-center justify-between mb-6"><h3 class="text-lg font-bold text-slate-800">Patient Details</h3><button id="modal-close" class="p-2 rounded-lg hover:bg-slate-100 text-slate-400"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button></div><div class="flex items-center gap-4 mb-6 pb-6 border-b border-slate-100"><div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white font-bold text-2xl">${(p.full_name||p.name||'?')[0].toUpperCase()}</div><div><h4 class="text-xl font-bold text-slate-800">${p.full_name||p.name}</h4><p class="text-sm text-slate-400">ID: ${p.patient_id||'—'}</p><span class="inline-block mt-1 px-2.5 py-1 rounded-full text-xs font-semibold ${p.status==='Active'||!p.status?'bg-emerald-50 text-emerald-600':'bg-slate-100 text-slate-500'}">${p.status||'Active'}</span></div></div><div class="space-y-3">${p.date_of_birth||p.dob?`<div class="flex justify-between py-2 border-b border-slate-50"><span class="text-sm text-slate-400">Date of Birth</span><span class="text-sm font-medium text-slate-700">${p.date_of_birth||p.dob}</span></div>`:''}${p.gender?`<div class="flex justify-between py-2 border-b border-slate-50"><span class="text-sm text-slate-400">Gender</span><span class="text-sm font-medium text-slate-700">${p.gender}</span></div>`:''}${p.phone?`<div class="flex justify-between py-2 border-b border-slate-50"><span class="text-sm text-slate-400">Phone</span><span class="text-sm font-medium text-slate-700">${p.phone}</span></div>`:''}${p.email?`<div class="flex justify-between py-2 border-b border-slate-50"><span class="text-sm text-slate-400">Email</span><span class="text-sm font-medium text-slate-700">${p.email}</span></div>`:''}${p.address?`<div class="flex justify-between py-2 border-b border-slate-50"><span class="text-sm text-slate-400">Address</span><span class="text-sm font-medium text-slate-700">${p.address}</span></div>`:''}${p.blood_type?`<div class="flex justify-between py-2 border-b border-slate-50"><span class="text-sm text-slate-400">Blood Type</span><span class="text-sm font-bold text-rose-600">${p.blood_type}</span></div>`:''}${p.allergies?`<div class="flex justify-between py-2 border-b border-slate-50"><span class="text-sm text-slate-400">Allergies</span><span class="text-sm font-medium text-amber-600">⚠ ${p.allergies}</span></div>`:''}${p.notes?`<div class="py-2"><span class="text-sm text-slate-400 block mb-1">Clinical Notes</span><p class="text-sm text-slate-700 bg-slate-50 p-3 rounded-xl">${p.notes}</p></div>`:''}</div><button id="modal-close-2" class="w-full mt-6 py-2.5 bg-slate-100 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-200 transition-all">Close</button></div>`;
+  },
+  bindMainEvents(){
+    document.getElementById('menu-toggle')?.addEventListener('click',()=>{this.state.sidebarOpen=!this.state.sidebarOpen;this.render();});
+    document.getElementById('sidebar-overlay')?.addEventListener('click',()=>{this.state.sidebarOpen=false;this.render();});
+    document.getElementById('logout-btn')?.addEventListener('click',async()=>{await SupabaseManager.signOut();this.state.user=null;localStorage.removeItem('haskay_session');window.location.hash='/login';this.render();this.toast('Signed out','success');});
+    document.getElementById('global-search')?.addEventListener('input',(e)=>{this.state.searchQuery=e.target.value;if(this.state.route==='/patients')this.render();});
+    document.getElementById('add-patient-btn')?.addEventListener('click',()=>this.openAddPatient());
+    document.getElementById('add-patient-btn-2')?.addEventListener('click',()=>this.openAddPatient());
+    document.getElementById('add-expense-btn')?.addEventListener('click',()=>this.openAddExpense());
+    document.getElementById('add-doc-btn')?.addEventListener('click',()=>this.toast('Document upload coming soon','info'));
+    document.getElementById('check-in-btn')?.addEventListener('click',()=>this.checkIn());
+    document.getElementById('check-out-btn')?.addEventListener('click',()=>this.checkOut());
+    document.querySelectorAll('.view-patient-btn').forEach(btn=>btn.addEventListener('click',()=>{const p=this.state.patients.find(x=>x.id===btn.dataset.id);if(p){this.openModal(this.modalPatientDetail(p));document.getElementById('modal-close')?.addEventListener('click',()=>this.closeModal());document.getElementById('modal-close-2')?.addEventListener('click',()=>this.closeModal());}}));
+    document.querySelectorAll('.edit-patient-btn').forEach(btn=>btn.addEventListener('click',()=>{const p=this.state.patients.find(x=>x.id===btn.dataset.id);if(p)this.openEditPatient(p);}));
+    document.querySelectorAll('.delete-patient-btn').forEach(btn=>btn.addEventListener('click',async()=>{if(confirm('Delete this patient?')){await SupabaseManager.delete('patients',btn.dataset.id);this.state.patients=await SupabaseManager.fetch('patients');this.render();this.toast('Patient deleted','success');}}));
+    document.querySelectorAll('.delete-expense-btn').forEach(btn=>btn.addEventListener('click',async()=>{if(confirm('Delete this expense?')){await SupabaseManager.delete('expenses',btn.dataset.id);this.state.expenses=await SupabaseManager.fetch('expenses');this.render();this.toast('Expense deleted','success');}}));
+    document.querySelectorAll('.delete-doc-btn').forEach(btn=>btn.addEventListener('click',async()=>{if(confirm('Delete this document?')){await SupabaseManager.delete('patient_documents',btn.dataset.id);this.state.documents=await SupabaseManager.fetch('patient_documents');this.render();this.toast('Document deleted','success');}}));
+  },
+  openAddPatient(){this.openModal(this.modalPatient());this.bindPatientForm(null);},
+  openEditPatient(p){this.openModal(this.modalPatient(p));this.bindPatientForm(p);},
+  bindPatientForm(patient){
+    document.getElementById('modal-close')?.addEventListener('click',()=>this.closeModal());
+    document.getElementById('modal-cancel')?.addEventListener('click',()=>this.closeModal());
+    document.getElementById('patient-form')?.addEventListener('submit',async(e)=>{e.preventDefault();const data=Object.fromEntries(new FormData(e.target).entries());if(!data.status)data.status='Active';const btn=e.target.querySelector('button[type="submit"]');btn.disabled=true;btn.innerHTML='<span class="animate-pulse">Saving…</span>';if(patient){await SupabaseManager.update('patients',patient.id,data);this.toast('Patient updated','success');}else{await SupabaseManager.insert('patients',data);this.toast('Patient added','success');}this.state.patients=await SupabaseManager.fetch('patients');this.closeModal();this.render();});
+  },
+  openAddExpense(){this.openModal(this.modalExpense());this.bindExpenseForm(null);},
+  bindExpenseForm(expense){
+    document.getElementById('modal-close')?.addEventListener('click',()=>this.closeModal());
+    document.getElementById('modal-cancel')?.addEventListener('click',()=>this.closeModal());
+    document.getElementById('expense-form')?.addEventListener('submit',async(e)=>{e.preventDefault();const data=Object.fromEntries(new FormData(e.target).entries());data.amount=parseFloat(data.amount)||0;const btn=e.target.querySelector('button[type="submit"]');btn.disabled=true;btn.innerHTML='<span class="animate-pulse">Saving…</span>';if(expense){await SupabaseManager.update('expenses',expense.id,data);this.toast('Expense updated','success');}else{await SupabaseManager.insert('expenses',data);this.toast('Expense added','success');}this.state.expenses=await SupabaseManager.fetch('expenses');this.closeModal();this.render();});
+  },
+  async checkIn(){
+    const name=this.state.user?.user_metadata?.name||this.state.user?.name||'Staff';
+    const now=new Date();const time=now.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+    const date=now.toISOString().split('T')[0];const status=now.getHours()<9?'On Time':'Late';
+    await SupabaseManager.insert('attendance',{staffName:name,checkIn:time,checkOut:'',date,status});
+    this.state.attendance=await SupabaseManager.fetch('attendance');this.render();this.toast('Checked in at '+time,'success');
+  },
+  async checkOut(){
+    const name=this.state.user?.user_metadata?.name||this.state.user?.name||'Staff';
+    const today=new Date().toISOString().split('T')[0];const time=new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+    const record=this.state.attendance.find(a=>a.staffName===name&&a.date===today&&!a.checkOut);
+    if(!record){this.toast('No active check-in found','error');return;}
+    await SupabaseManager.update('attendance',record.id,{checkOut:time});
+    this.state.attendance=await SupabaseManager.fetch('attendance');this.render();this.toast('Checked out at '+time,'success');
+  },
+  toast(message,type='info'){
+    const colors={success:'bg-emerald-600',error:'bg-rose-600',info:'bg-slate-800'};
+    const icons={success:'<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>',error:'<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>',info:'<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>'};
+    const t=document.createElement('div');
+    t.className=colors[type]+' text-white px-4 py-3 rounded-xl shadow-lg flex items-center gap-2 toast-in text-sm font-medium';
+    t.innerHTML='<svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">'+icons[type]+'</svg><span>'+message+'</span>';
+    document.getElementById('toast-container').appendChild(t);
+    setTimeout(()=>{t.style.opacity='0';t.style.transform='translateY(20px)';t.style.transition='all .3s';setTimeout(()=>t.remove(),300);},3000);
+  }
+};
+document.addEventListener('DOMContentLoaded',()=>App.init());
+</script>
 </body>
 </html>
